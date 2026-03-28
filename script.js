@@ -25,7 +25,11 @@ if (SpeechRecognition) {
     recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'ja-JP'; // Default to Japanese, can be changed!
+    recognition.lang = 'ja-JP';
+
+    recognition.onstart = () => {
+        console.log("Speech recognition started... 🎤");
+    };
 
     recognition.onresult = (event) => {
         let interimTranscript = "";
@@ -42,7 +46,17 @@ if (SpeechRecognition) {
 
     recognition.onerror = (event) => {
         console.error("Speech Recognition Error:", event.error);
+        if (event.error === 'not-allowed') {
+            alert("Microphone permission denied for speech recognition! 🚫");
+        }
     };
+
+    recognition.onend = () => {
+        console.log("Speech recognition ended.");
+    };
+} else {
+    console.warn("Speech Recognition API not supported in this browser.");
+    updateTranscriptDisplay("⚠️ Speech Recognition is not supported in this browser. Try Chrome! ✨");
 }
 
 function updateTranscriptDisplay(text) {
@@ -119,8 +133,18 @@ async function startRecording() {
 
         // Start Recording & Recognition
         mediaRecorder.start();
-        if (recognition) recognition.start();
         initVisualizer(stream);
+
+        // Delay starting recognition slightly to avoid mic conflict on mobile
+        if (recognition) {
+            setTimeout(() => {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.warn("Recognition already started or failed:", e);
+                }
+            }, 500);
+        }
         
         isRecording = true;
         updateUI();
