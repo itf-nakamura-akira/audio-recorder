@@ -5,14 +5,54 @@ let analyser;
 let dataArray;
 let animationId;
 
+// Speech Recognition
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+let currentTranscript = "";
+
 const recordButton = document.getElementById('recordButton');
 const statusDiv = document.getElementById('status');
 const statusText = statusDiv.querySelector('.status-text');
 const recordingsList = document.getElementById('recordingsList');
 const canvas = document.getElementById('visualizer');
 const canvasCtx = canvas.getContext('2d');
+const transcriptArea = document.getElementById('transcriptArea');
 
 let isRecording = false;
+
+// Initialize Speech Recognition
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'ja-JP'; // Default to Japanese, can be changed!
+
+    recognition.onresult = (event) => {
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                currentTranscript += transcript + " ";
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        updateTranscriptDisplay(currentTranscript + interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+        console.error("Speech Recognition Error:", event.error);
+    };
+}
+
+function updateTranscriptDisplay(text) {
+    if (text.trim() === "") {
+        transcriptArea.innerHTML = '<p class="transcript-placeholder">Your transcript will appear here... ✨</p>';
+    } else {
+        transcriptArea.textContent = text;
+        transcriptArea.scrollTop = transcriptArea.scrollHeight; // Auto scroll
+    }
+}
 
 // Initialize Visualizer
 function initVisualizer(stream) {
@@ -65,7 +105,7 @@ async function startRecording() {
         mediaRecorder.onstop = () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             const audioUrl = URL.createObjectURL(audioBlob);
-            addRecordingToList(audioUrl);
+            addRecordingToList(audioUrl, currentTranscript);
             audioChunks = [];
             
             // Stop visualizer
@@ -73,7 +113,13 @@ async function startRecording() {
             stream.getTracks().forEach(track => track.stop());
         };
 
+        // Reset transcript
+        currentTranscript = "";
+        updateTranscriptDisplay("");
+
+        // Start Recording & Recognition
         mediaRecorder.start();
+        if (recognition) recognition.start();
         initVisualizer(stream);
         
         isRecording = true;
@@ -86,6 +132,7 @@ async function startRecording() {
 
 function stopRecording() {
     mediaRecorder.stop();
+    if (recognition) recognition.stop();
     isRecording = false;
     updateUI();
 }
@@ -106,7 +153,7 @@ function updateUI() {
     }
 }
 
-function addRecordingToList(url) {
+function addRecordingToList(url, transcript) {
     // Remove empty message if it exists
     const emptyMsg = recordingsList.querySelector('.empty-msg');
     if (emptyMsg) emptyMsg.remove();
@@ -115,12 +162,18 @@ function addRecordingToList(url) {
     const recordingItem = document.createElement('div');
     recordingItem.className = 'recording-item';
     
+    const displayTranscript = transcript.trim() || "No text detected... 🔇";
+
     recordingItem.innerHTML = `
         <div class="recording-header">
             <span>Recording ${recordingsList.children.length + 1}</span>
             <span>${timestamp}</span>
         </div>
         <audio controls src="${url}"></audio>
+        <div class="recording-transcript">
+            <h4>Transcript</h4>
+            <p>${displayTranscript}</p>
+        </div>
     `;
     
     recordingsList.prepend(recordingItem);

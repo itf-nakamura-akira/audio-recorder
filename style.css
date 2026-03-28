@@ -124,6 +124,41 @@ header p {
     100% { transform: scale(1); opacity: 1; }
 }
 
+.transcript-area {
+    width: 100%;
+    min-height: 80px;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 1rem;
+    border-left: 4px solid var(--primary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.transcript-placeholder {
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.recording-transcript {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #f1f2f6;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.recording-transcript h4 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 0.2rem;
+}
+
 .recordings-section {
     padding: 1rem;
 }
