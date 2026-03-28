@@ -1,0 +1,144 @@
+let mediaRecorder;
+let audioChunks = [];
+let audioContext;
+let analyser;
+let dataArray;
+let animationId;
+
+const recordButton = document.getElementById('recordButton');
+const statusDiv = document.getElementById('status');
+const statusText = statusDiv.querySelector('.status-text');
+const recordingsList = document.getElementById('recordingsList');
+const canvas = document.getElementById('visualizer');
+const canvasCtx = canvas.getContext('2d');
+
+let isRecording = false;
+
+// Initialize Visualizer
+function initVisualizer(stream) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    draw();
+}
+
+function draw() {
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    animationId = requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(dataArray);
+
+    canvasCtx.fillStyle = '#f1f2f6';
+    canvasCtx.fillRect(0, 0, width, height);
+
+    const barWidth = (width / dataArray.length) * 2.5;
+    let barHeight;
+    let x = 0;
+
+    for (let i = 0; i < dataArray.length; i++) {
+        barHeight = dataArray[i] / 2;
+
+        // Gradient for bars
+        canvasCtx.fillStyle = `rgb(${barHeight + 100}, 92, 231)`;
+        canvasCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+
+        x += barWidth + 1;
+    }
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            addRecordingToList(audioUrl);
+            audioChunks = [];
+            
+            // Stop visualizer
+            cancelAnimationFrame(animationId);
+            stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        initVisualizer(stream);
+        
+        isRecording = true;
+        updateUI();
+    } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("Oops! Could not access your microphone. 🎙️");
+    }
+}
+
+function stopRecording() {
+    mediaRecorder.stop();
+    isRecording = false;
+    updateUI();
+}
+
+function updateUI() {
+    if (isRecording) {
+        recordButton.classList.add('recording');
+        recordButton.querySelector('.btn-text').textContent = 'Stop Recording';
+        recordButton.querySelector('.btn-icon').textContent = '⏹️';
+        statusDiv.classList.add('recording');
+        statusText.textContent = 'Recording...';
+    } else {
+        recordButton.classList.remove('recording');
+        recordButton.querySelector('.btn-text').textContent = 'Start Recording';
+        recordButton.querySelector('.btn-icon').textContent = '🎙️';
+        statusDiv.classList.remove('recording');
+        statusText.textContent = 'Idle';
+    }
+}
+
+function addRecordingToList(url) {
+    // Remove empty message if it exists
+    const emptyMsg = recordingsList.querySelector('.empty-msg');
+    if (emptyMsg) emptyMsg.remove();
+
+    const timestamp = new Date().toLocaleString();
+    const recordingItem = document.createElement('div');
+    recordingItem.className = 'recording-item';
+    
+    recordingItem.innerHTML = `
+        <div class="recording-header">
+            <span>Recording ${recordingsList.children.length + 1}</span>
+            <span>${timestamp}</span>
+        </div>
+        <audio controls src="${url}"></audio>
+    `;
+    
+    recordingsList.prepend(recordingItem);
+}
+
+recordButton.addEventListener('click', () => {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+});
+
+// Resize canvas to match its displayed size
+function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();

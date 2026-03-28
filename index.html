@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder ✨</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Audio Recorder ✨</h1>
+            <p>Ready to record something cool?</p>
+        </header>
+
+        <main>
+            <div class="recorder-card">
+                <canvas id="visualizer"></canvas>
+                <div class="controls">
+                    <button id="recordButton" class="btn btn-record">
+                        <span class="btn-icon">🎙️</span>
+                        <span class="btn-text">Start Recording</span>
+                    </button>
+                    <div id="status" class="status-indicator">
+                        <span class="dot"></span>
+                        <span class="status-text">Idle</span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="recordings-section">
+                <h2>Your Recordings 📁</h2>
+                <div id="recordingsList" class="recordings-list">
+                    <p class="empty-msg">No recordings yet! Try recording something. ✨</p>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
